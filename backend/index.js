@@ -147,19 +147,19 @@ app.delete("/todos/:id", authenticateToken, async (req, res) => {
     }
 });
 
-async function server(){
-    try {
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log('YAY');
-        app.listen(PORT, ()=>{
-            console.log("APP RUNNING", url);
-        })
-    } catch (err) {
-        console.error(err);
-        process.exit(1); // exit codes are numbers — 0 = success, non-zero = failure
-    }
-}
-server();
+// async function server(){
+//     try {
+//         await mongoose.connect(process.env.MONGO_URI);
+//         console.log('YAY');
+//         app.listen(PORT, ()=>{
+//             console.log("APP RUNNING", url);
+//         })
+//     } catch (err) {
+//         console.error(err);
+//         process.exit(1); // exit codes are numbers — 0 = success, non-zero = failure
+//     }
+// }
+// server();
 module.exports = app;
 
 if (process.env.NODE_ENV !== 'production') {
