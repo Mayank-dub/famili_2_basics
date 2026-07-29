@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Todos</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="todo-container">
+    <div class="top-bar">
+      <h1 style="margin:0;">My Todos</h1>
+      <button class="logout-btn" id="logout-btn">Log Out</button>
+    </div>
+
+    <form class="add-todo-form" id="add-todo-form">
+      <input type="text" id="todo-title" placeholder="What needs doing?" required />
+      <button type="submit">Add</button>
+    </form>
+
+    <p class="error-msg" id="error-msg"></p>
+    <ul id="todo-list"></ul>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const errorMsg = document.getElementById("error-msg");
+    const todoList = document.getElementById("todo-list");
+
+    // No token at all — bounce back to login immediately
+    if (!token) {
+      window.location.href = "index.html";
+    }
+
+    // Every request to a protected route needs this header
+    function authHeaders() {
+      return {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+    }
+
+    async function loadTodos() {
+      errorMsg.textContent = "";
+      try {
+        const res = await fetch(`${API_BASE_URL}/todos`, {
+          headers: authHeaders(),
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          // Token missing/expired/invalid — send back to login
+          localStorage.removeItem("token");
+          window.location.href = "index.html";
+          return;
+        }
+
+        const todos = await res.json();
+        renderTodos(todos);
+      } catch (err) {
+        errorMsg.textContent = "Could not reach the server";
+      }
+    }
+
+    function renderTodos(todos) {
+      todoList.innerHTML = "";
+      todos.forEach((todo) => {
+        const li = document.createElement("li");
+        li.className = "todo-item";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = todo.completed;
+        checkbox.addEventListener("change", () => toggleTodo(todo._id, checkbox.checked));
+
+        const span = document.createElement("span");
+        span.textContent = todo.title;
+        if (todo.completed) span.classList.add("completed");
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.className = "delete-btn";
+        deleteBtn.addEventListener("click", () => deleteTodo(todo._id));
+
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        li.appendChild(deleteBtn);
+        todoList.appendChild(li);
+      });
+    }
+
+    async function toggleTodo(id, completed) {
+      try {
+        await fetch(`${API_BASE_URL}/todos/${id}`, {
+          method: "PUT",
+          headers: authHeaders(),
+          body: JSON.stringify({ completed }),
+        });
+        loadTodos();
+      } catch (err) {
+        errorMsg.textContent = "Could not update todo";
+      }
+    }
+
+    async function deleteTodo(id) {
+      try {
+        await fetch(`${API_BASE_URL}/todos/${id}`, {
+          method: "DELETE",
+          headers: authHeaders(),
+        });
+        loadTodos();
+      } catch (err) {
+        errorMsg.textContent = "Could not delete todo";
+      }
+    }
+
+    document.getElementById("add-todo-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const titleInput = document.getElementById("todo-title");
+      const title = titleInput.value.trim();
+      if (!title) return;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/todos`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ title }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          errorMsg.textContent = data.error || "Could not add todo";
+          return;
+        }
+
+        titleInput.value = "";
+        loadTodos();
+      } catch (err) {
+        errorMsg.textContent = "Could not reach the server";
+      }
+    });
+
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      localStorage.removeItem("token");
+      window.location.href = "index.html";
+    });
+
+    loadTodos();
+  </script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up — Todo App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Sign Up</h1>
+    <form id="signup-form">
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Sign Up</button>
+      <p class="error-msg" id="error-msg"></p>
+    </form>
+    <p class="switch-link">Already have an account? <a href="index.html">Log in</a></p>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const form = document.getElementById("signup-form");
+    const errorMsg = document.getElementById("error-msg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = "";
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorMsg.textContent = data.error || "Signup failed";
+          return;
+        }
+
+        // Signup succeeded — send them to log in (no token issued at signup)
+        window.location.href = "index.html";
+      } catch (err) {
+        errorMsg.textContent = "Could not reach the server";
+      }
+    });
+  </script>
+</body>
+</html>
