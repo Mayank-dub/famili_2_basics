@@ -14,6 +14,21 @@ const PORT = 3000;
 require('dotenv').config();
 
 app.use(express.json());
+let isConnected = false;
+
+async function connectDB() {
+    if (isConnected) return;
+    await mongoose.connect(process.env.MONGO_URI);
+    isConnected = true;
+    console.log("MongoDB connected");
+}
+
+// Ensure DB is connected before handling any request
+app.use(async (req, res, next) => {
+    await connectDB();
+    next();
+});
+
 
 app.get("/", (req, res) => {
     res.json({ status: "ok", message: "Todo API is running" });
@@ -147,20 +162,6 @@ app.delete("/todos/:id", authenticateToken, async (req, res) => {
     }
 });
 
-let isConnected = false;
-
-async function connectDB() {
-    if (isConnected) return;
-    await mongoose.connect(process.env.MONGO_URI);
-    isConnected = true;
-    console.log("MongoDB connected");
-}
-
-// Ensure DB is connected before handling any request
-app.use(async (req, res, next) => {
-    await connectDB();
-    next();
-});
 
 module.exports = app;
 
