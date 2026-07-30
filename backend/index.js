@@ -14,6 +14,8 @@ const PORT = 3000;
 require('dotenv').config();
 
 app.use(express.json());
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
 let isConnected = false;
 
 async function connectDB() {
@@ -30,7 +32,7 @@ app.use(async (req, res, next) => {
 });
 
 
-app.get("/", (req, res) => {
+app.get("/api/health", (req, res) => {
     res.json({ status: "ok", message: "Todo API is running" });
 });
 const url = `http://localhost:${PORT}`;
