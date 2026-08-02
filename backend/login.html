@@ -17,38 +17,6 @@
     </form>
     <p class="switch-link">Don't have an account? <a href="signup.html">Sign up</a></p>
   </div>
-
-  <!-- CHANGE 1: deleted <script src="config.js"></script> entirely — no longer needed -->
-
-  <!-- CHANGE 2: added type="module", required for import statements to work -->
-  <script type="module">
-    // CHANGE 3: two new imports — these replace API_BASE_URL entirely
-    import { auth } from "./firebase-config.js";
-    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
-
-    const form = document.getElementById("login-form");
-    const errorMsg = document.getElementById("error-msg");
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      errorMsg.textContent = "";
-
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-
-      try {
-        // CHANGE 4: this one line replaces the entire old fetch() block —
-        // the fetch call, res.json(), the res.ok check, and localStorage.setItem
-        // are all gone, because Firebase handles the request AND session state itself
-        await signInWithEmailAndPassword(auth, email, password);
-        window.location.href = "todos.html";
-      } catch (err) {
-        // CHANGE 5: err.message instead of the hardcoded "Could not reach the server" —
-        // Firebase throws descriptive errors like "auth/wrong-password" reasons already
-        errorMsg.textContent = err.message;
-      }
-    });
-  </script>
   <script>
   // Inject styles for the effects below, so you don't need to edit style.css
   const styleTag = document.createElement("style");
@@ -128,5 +96,38 @@
     checkWrap.style.display = "block";
   });
 </script>
+
+  <!-- CHANGE 1: deleted <script src="config.js"></script> entirely — no longer needed -->
+
+  <!-- CHANGE 2: added type="module", required for import statements to work -->
+  <script type="module">
+    // CHANGE 3: two new imports — these replace API_BASE_URL entirely
+    import { auth } from "./firebase-config.js";
+    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+
+    const form = document.getElementById("login-form");
+    const errorMsg = document.getElementById("error-msg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = "";
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        // CHANGE 4: this one line replaces the entire old fetch() block —
+        // the fetch call, res.json(), the res.ok check, and localStorage.setItem
+        // are all gone, because Firebase handles the request AND session state itself
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = "todos.html";
+      } catch (err) {
+        // CHANGE 5: err.message instead of the hardcoded "Could not reach the server" —
+        // Firebase throws descriptive errors like "auth/wrong-password" reasons already
+        errorMsg.textContent = err.message;
+      }
+    });
+  </script>
+  
 </body>
 </html>
