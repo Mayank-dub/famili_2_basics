@@ -18,8 +18,14 @@
     <p class="switch-link">Already have an account? <a href="login.html">Log in</a></p>
   </div>
 
-  <script src="config.js"></script>
-  <script>
+  <!-- CHANGE 1: deleted <script src="config.js"></script> -->
+
+  <!-- CHANGE 2: type="module" -->
+  <script type="module">
+    <!-- CHANGE 3: two imports, same idea as login.html but createUserWithEmailAndPassword instead -->
+    import { auth } from "./firebase-config.js";
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+
     const form = document.getElementById("signup-form");
     const errorMsg = document.getElementById("error-msg");
 
@@ -31,23 +37,13 @@
       const password = document.getElementById("password").value;
 
       try {
-        const res = await fetch(`${API_BASE_URL}/signup`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
+        // CHANGE 4: fetch() block replaced with one line
+        await createUserWithEmailAndPassword(auth, email, password);
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          errorMsg.textContent = data.error || "Signup failed";
-          return;
-        }
-
-        // Signup succeeded — send them to log in (no token issued at signup)
-        window.location.href = "index.html";
+        // CHANGE 5 — this one's different from login.html, read the note below
+        window.location.href = "todos.html";
       } catch (err) {
-        errorMsg.textContent = "Could not reach the server";
+        errorMsg.textContent = err.message;
       }
     });
   </script>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Todo App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Log In</h1>
+    <form id="login-form">
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Log In</button>
+      <p class="error-msg" id="error-msg"></p>
+    </form>
+    <p class="switch-link">Don't have an account? <a href="signup.html">Sign up</a></p>
+  </div>
+
+  <!-- CHANGE 1: deleted <script src="config.js"></script> entirely — no longer needed -->
+
+  <!-- CHANGE 2: added type="module", required for import statements to work -->
+  <script type="module">
+    // CHANGE 3: two new imports — these replace API_BASE_URL entirely
+    import { auth } from "./firebase-config.js";
+    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+
+    const form = document.getElementById("login-form");
+    const errorMsg = document.getElementById("error-msg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = "";
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        // CHANGE 4: this one line replaces the entire old fetch() block —
+        // the fetch call, res.json(), the res.ok check, and localStorage.setItem
+        // are all gone, because Firebase handles the request AND session state itself
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = "todos.html";
+      } catch (err) {
+        // CHANGE 5: err.message instead of the hardcoded "Could not reach the server" —
+        // Firebase throws descriptive errors like "auth/wrong-password" reasons already
+        errorMsg.textContent = err.message;
+      }
+    });
+  </script>
+  <script>
+  // Inject styles for the effects below, so you don't need to edit style.css
+  const styleTag = document.createElement("style");
+  styleTag.textContent = `
+    .container input {
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .container input:focus {
+      outline: none;
+      border-color: #3E7C8C;
+      box-shadow: 0 0 0 3px rgba(62, 124, 140, 0.15);
+    }
+    .container.shake {
+      animation: shake 0.4s ease;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+    #success-check {
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 14px auto;
+      display: none;
+    }
+    #success-check svg { width: 100%; height: 100%; }
+    #success-check path {
+      fill: none;
+      stroke: #3E7C8C;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-dasharray: 30;
+      stroke-dashoffset: 30;
+      animation: draw-check 0.5s ease forwards;
+    }
+    @keyframes draw-check {
+      to { stroke-dashoffset: 0; }
+    }
+  `;
+  document.head.appendChild(styleTag);
+
+  // A small checkmark element, hidden until login succeeds
+  const checkWrap = document.createElement("div");
+  checkWrap.id = "success-check";
+  checkWrap.innerHTML = `
+    <svg viewBox="0 0 24 24">
+      <path d="M4 12l6 6L20 6" />
+    </svg>
+  `;
+  document.querySelector(".container").prepend(checkWrap);
+
+  const containerEl = document.querySelector(".container");
+  const errorMsgEl = document.getElementById("error-msg");
+
+  // Watch the error message — whenever it gets text, shake the card
+  const observer = new MutationObserver(() => {
+    if (errorMsgEl.textContent.trim() !== "") {
+      containerEl.classList.remove("shake"); // reset so repeated errors re-trigger
+      void containerEl.offsetWidth; // force reflow so the animation restarts
+      containerEl.classList.add("shake");
+    }
+  });
+  observer.observe(errorMsgEl, { childList: true, characterData: true, subtree: true });
+
+  // Hook into the existing form's submit — this runs *after* your Firebase
+  // script's own handler, since script tags execute in order
+  const loginForm = document.getElementById("login-form");
+  loginForm.addEventListener("submit", () => {
+    // If the Firebase call succeeds, redirect happens in your other script —
+    // this just shows the checkmark briefly first by delaying nothing extra,
+    // it purely reveals on the moment redirect is about to happen.
+    // Simplest hook: show it right away, it'll be visible during the brief
+    // network round-trip before window.location.href takes over.
+    checkWrap.style.display = "block";
+  });
+</script>
+</body>
+</html>

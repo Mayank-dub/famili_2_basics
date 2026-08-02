@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Todos</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="todo-container">
+    <div class="top-bar">
+      <h1 style="margin:0;">My Todos</h1>
+      <button class="logout-btn" id="logout-btn">Log Out</button>
+    </div>
+
+    <form class="add-todo-form" id="add-todo-form">
+      <input type="text" id="todo-title" placeholder="What needs doing?" required />
+      <button type="submit">Add</button>
+    </form>
+
+    <p class="error-msg" id="error-msg"></p>
+    <ul id="todo-list"></ul>
+  </div>
+
+  <!-- CHANGE 1: config.js deleted -->
+
+  <!-- CHANGE 2: type="module", plus a much bigger import list this time -->
+  <script type="module">
+    import { auth, db } from "./firebase-config.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+    import {
+      collection, addDoc, query, where, getDocs,
+      doc, updateDoc, deleteDoc
+    } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+
+    const errorMsg = document.getElementById("error-msg");
+    const todoList = document.getElementById("todo-list");
+
+    // CHANGE 3: no more `const token = localStorage.getItem("token")` and no more
+    // authHeaders() function anywhere in this file — deleted entirely.
+    // Firebase tracks who's logged in internally; you never touch a token yourself.
+
+    // CHANGE 4: this replaces your old `if (!token) redirect` check.
+    // It fires once immediately, then again any time login state changes.
+    // Everything that needs "who's the current user" now lives inside here.
+    let currentUser = null;
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+      currentUser = user;
+      loadTodos();
+    });
+
+    // CHANGE 5: fetch(...) replaced with a Firestore query filtered to this user
+    async function loadTodos() {
+      errorMsg.textContent = "";
+      try {
+        const q = query(collection(db, "todos"), where("userId", "==", currentUser.uid));
+        const snapshot = await getDocs(q);
+        // Firestore gives you doc snapshots, not plain objects —
+        // .id is separate from the data, so we merge them for renderTodos
+        const todos = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+        renderTodos(todos);
+      } catch (err) {
+        errorMsg.textContent = "Could not load todos";
+      }
+    }
+
+    // CHANGE 6: todo._id (Mongo's field name) is now just todo.id
+    function renderTodos(todos) {
+      todoList.innerHTML = "";
+      todos.forEach((todo) => {
+        const li = document.createElement("li");
+        li.className = "todo-item";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = todo.completed;
+        checkbox.addEventListener("change", () => toggleTodo(todo.id, checkbox.checked));
+
+        const span = document.createElement("span");
+        span.textContent = todo.title;
+        if (todo.completed) span.classList.add("completed");
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.className = "delete-btn";
+        deleteBtn.addEventListener("click", () => deleteTodo(todo.id));
+
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        li.appendChild(deleteBtn);
+        todoList.appendChild(li);
+      });
+    }
+
+    // CHANGE 7: fetch PUT replaced with updateDoc — note doc(db, "todos", id)
+    // is how you point at one specific document
+    async function toggleTodo(id, completed) {
+      try {
+        await updateDoc(doc(db, "todos", id), { completed });
+        loadTodos();
+      } catch (err) {
+        errorMsg.textContent = "Could not update todo";
+      }
+    }
+
+    // CHANGE 8: fetch DELETE replaced with deleteDoc
+    async function deleteTodo(id) {
+      try {
+        await deleteDoc(doc(db, "todos", id));
+        loadTodos();
+      } catch (err) {
+        errorMsg.textContent = "Could not delete todo";
+      }
+    }
+
+    // CHANGE 9: fetch POST replaced with addDoc — this is also where
+    // ownership gets attached (userId: currentUser.uid), same job your old
+    // Express route did with req.user.userId
+    document.getElementById("add-todo-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const titleInput = document.getElementById("todo-title");
+      const title = titleInput.value.trim();
+      if (!title) return;
+
+      try {
+        await addDoc(collection(db, "todos"), {
+          title,
+          completed: false,
+          userId: currentUser.uid,
+        });
+        titleInput.value = "";
+        loadTodos();
+      } catch (err) {
+        errorMsg.textContent = "Could not add todo";
+      }
+    });
+
+    // CHANGE 10: signOut(auth) replaces localStorage.removeItem("token").
+    // No manual redirect needed here either — onAuthStateChanged (Change 4)
+    // detects the logout and redirects automatically.
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      signOut(auth);
+    });
+
+    // CHANGE 11: the old loadTodos() call at the very bottom is deleted —
+    // it's no longer needed here, because onAuthStateChanged calls it
+    // for you once it confirms who's logged in (Change 4).
+  </script>
+</body>
+</html>
